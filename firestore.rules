@@ -1,0 +1,144 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Fonction helper pour vérifier si l'utilisateur est admin
+    function isAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Fonction helper pour vérifier si l'utilisateur est authentifié
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Fonction helper pour vérifier si l'utilisateur est propriétaire
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Fonction helper pour valider les données
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'name', 'role']) &&
+             data.email is string &&
+             data.name is string &&
+             data.role in ['admin', 'member'];
+    }
+    
+    function isValidServiceRequest(data) {
+      return data.keys().hasAll(['userId', 'service', 'amount', 'description', 'status']) &&
+             data.userId is string &&
+             data.service is string &&
+             data.amount is number &&
+             data.amount > 0 &&
+             data.description is string &&
+             data.status in ['pending', 'approved', 'rejected'];
+    }
+    
+    // Règles pour les utilisateurs
+    match /users/{userId} {
+      // Lecture: utilisateur lui-même ou admin
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Création: seulement les admins
+      allow create: if isAdmin() && isValidUser(request.resource.data);
+      
+      // Mise à jour: utilisateur lui-même (champs limités) ou admin
+      allow update: if (isOwner(userId) && 
+                       request.resource.data.diff(resource.data).affectedKeys()
+                       .hasOnly(['name', 'phone', 'address', 'birthDate', 'lastLogin', 'updatedAt'])) ||
+                      (isAdmin() && isValidUser(request.resource.data));
+      
+      // Suppression: seulement les admins
+      allow delete: if isAdmin();
+    }
+    
+    // Règles pour les demandes de service
+    match /serviceRequests/{requestId} {
+      // Lecture: propriétaire de la demande ou admin
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      
+      // Création: utilisateur authentifié pour ses propres demandes
+      allow create: if isAuthenticated() && 
+                   isOwner(request.resource.data.userId) &&
+                   isValidServiceRequest(request.resource.data) &&
+                   request.resource.data.status == 'pending';
+      
+      // Mise à jour: seulement les admins (pour changer le statut)
+      allow update: if isAdmin() && 
+                   request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['status', 'comments', 'reviewedBy', 'responseDate']);
+      
+      // Suppression: propriétaire (si en attente) ou admin
+      allow delete: if (isOwner(resource.data.userId) && resource.data.status == 'pending') ||
+                   isAdmin();
+    }
+    
+    // Règles pour les services
+    match /services/{serviceId} {
+      // Lecture: tous les utilisateurs authentifiés
+      allow read: if isAuthenticated();
+      
+      // Écriture: seulement les admins
+      allow write: if isAdmin();
+    }
+    
+    // Règles pour les membres de famille
+    match /familyMembers/{memberId} {
+      // Lecture/Écriture: propriétaire seulement
+      allow read, write: if isAuthenticated() && isOwner(resource.data.userId);
+      
+      // Création: utilisateur authentifié pour ses propres membres
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+    }
+    
+    // Règles pour les notifications
+    match /notifications/{notificationId} {
+      // Lecture: destinataire de la notification
+      allow read: if isAuthenticated() && isOwner(resource.data.userId);
+      
+      // Création: système ou admin
+      allow create: if isAdmin();
+      
+      // Mise à jour: destinataire (pour marquer comme lu)
+      allow update: if isAuthenticated() && 
+                   isOwner(resource.data.userId) &&
+                   request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['read']);
+      
+      // Suppression: destinataire ou admin
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+    
+    // Règles pour les logs de sécurité
+    match /securityLogs/{logId} {
+      // Lecture: seulement les admins
+      allow read: if isAdmin();
+      
+      // Création: système seulement (pas de règle allow create)
+      // Les logs sont créés via des fonctions cloud
+      
+      // Pas de mise à jour ou suppression
+    }
+    
+    // Règles pour les logs d'audit
+    match /auditLogs/{logId} {
+      // Lecture: seulement les admins
+      allow read: if isAdmin();
+      
+      // Création: système seulement
+      // Pas de mise à jour ou suppression
+    }
+    
+    // Règles pour les tests de connectivité
+    match /test/{document=**} {
+      // Lecture: utilisateurs authentifiés (pour vérifier la connectivité)
+      allow read: if isAuthenticated();
+    }
+    
+    // Règles par défaut: refuser tout accès non spécifié
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
