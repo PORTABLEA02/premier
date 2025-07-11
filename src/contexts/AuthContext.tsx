@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { authService } from '../services/authService';
-import { userService } from '../services/userService';
+import { enhancedAuthService } from '../services/enhancedAuthService';
+import { enhancedUserService } from '../services/enhancedUserService';
 import { User } from '../types';
 import { logger } from '../utils/logger';
+import { handleError } from '../utils/errorHandler';
 
 interface AuthContextType {
   user: User | null;
@@ -35,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (firebaseUser) {
         try {
           // Récupérer les données utilisateur complètes depuis Firestore
-          const userData = await userService.getUserById(firebaseUser.uid);
+          const userData = await enhancedUserService.getUserById(firebaseUser.uid);
           if (userData) {
             setUser(userData);
             logger.setUser(userData.id, userData.email, userData.role);
@@ -52,10 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null);
           }
         } catch (error) {
-          logger.error('auth', 'Erreur lors de la récupération des données utilisateur', {
-            firebaseUid: firebaseUser.uid,
-            error: error.message
-          }, error as Error);
+          await handleError(error as Error, { action: 'getUserData', firebaseUid: firebaseUser.uid });
           setUser(null);
         }
       } else {
@@ -75,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       logger.logAuthEvent('Tentative de connexion', { email });
       
-      const userData = await authService.login(email, password);
+      const userData = await enhancedAuthService.login(email, password);
       if (userData) {
         setUser(userData);
         logger.setUser(userData.id, userData.email, userData.role);
@@ -88,10 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logger.warn('auth', 'Connexion échouée - données utilisateur manquantes', { email });
       return false;
     } catch (error: any) {
-      logger.error('auth', 'Erreur de connexion', {
-        email,
-        errorMessage: error.message
-      }, error);
+      await handleError(error, { action: 'login', email });
       throw error;
     } finally {
       setLoading(false);
@@ -104,15 +99,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentUserId = user?.id;
       logger.logAuthEvent('Déconnexion initiée', { userId: currentUserId });
       
-      await authService.logout();
+      await enhancedAuthService.logout();
       setUser(null);
       logger.clearUser();
       logger.logAuthEvent('Déconnexion réussie', { userId: currentUserId });
     } catch (error) {
-      logger.error('auth', 'Erreur de déconnexion', {
-        userId: user?.id,
-        error: error.message
-      }, error as Error);
+      await handleError(error as Error, { action: 'logout', userId: user?.id });
       throw error;
     } finally {
       setLoading(false);
@@ -122,14 +114,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetPassword = async (email: string): Promise<boolean> => {
     try {
       logger.logAuthEvent('Demande de réinitialisation de mot de passe', { email });
-      await authService.resetPassword(email);
+      await enhancedAuthService.resetPassword(email);
       logger.logAuthEvent('Email de réinitialisation envoyé', { email });
       return true;
     } catch (error: any) {
-      logger.error('auth', 'Erreur de réinitialisation de mot de passe', {
-        email,
-        error: error.message
-      }, error);
+      await handleError(error, { action: 'resetPassword', email });
       throw error;
     }
   };
@@ -140,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userId: user?.id
       });
       
-      await authService.changePassword(currentPassword, newPassword);
+      await enhancedAuthService.changePassword(currentPassword, newPassword);
       
       // Mettre à jour l'utilisateur local
       if (user) {
@@ -154,10 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       return true;
     } catch (error: any) {
-      logger.error('auth', 'Erreur de changement de mot de passe', {
-        userId: user?.id,
-        error: error.message
-      }, error);
+      await handleError(error, { action: 'changePassword', userId: user?.id });
       throw error;
     }
   };
@@ -172,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       
       // Mettre à jour dans Firestore
-      await userService.updateUser(user.id, {
+      await enhancedUserService.updateUser(user.id, {
         ...userData,
         updatedAt: new Date()
       });
@@ -186,12 +172,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fieldsUpdated: Object.keys(userData)
       });
     } catch (error) {
-      logger.error('user', 'Erreur de mise à jour du profil', {
-        userId: user?.id,
-        fieldsUpdated: Object.keys(userData),
-        error: error.message
-      }, error as Error);
-      throw new Error('Erreur lors de la mise à jour du profil');
+      await handleError(error as Error, { action: 'updateProfile', userId: user?.id });
+      throw error;
     }
   };
 
