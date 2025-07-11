@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
 import { userService } from '../../services/userService';
 import { FamilyMember, Service } from '../../types';
+import { logger } from '../../utils/logger';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
 
 interface ServiceRequestForm {
   serviceId: string;
@@ -18,6 +20,7 @@ interface ServiceRequestForm {
 
 export default function ServiceRequest() {
   const { user } = useAuth();
+  const { handleError, handleAsyncError } = useErrorHandler();
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -28,6 +31,11 @@ export default function ServiceRequest() {
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<ServiceRequestForm>();
   
   const selectedServiceId = watch('serviceId');
+  
+  // Enregistrer le champ serviceId avec react-hook-form
+  React.useEffect(() => {
+    register('serviceId', { required: 'Veuillez sélectionner un service' });
+  }, [register]);
   const selectedService = services.find(s => s.id === selectedServiceId);
   const currentAmount = watch('amount');
   const paymentMethod = watch('paymentMethod');
@@ -37,6 +45,9 @@ export default function ServiceRequest() {
   useEffect(() => {
     if (!user) return;
 
+    logger.info('user', 'Chargement de la page de demande de service', {
+      userId: user.id
+    });
     const loadData = async () => {
       try {
         setLoading(true);
@@ -46,8 +57,17 @@ export default function ServiceRequest() {
         ]);
         setFamilyMembers(members);
         setServices(servicesData); // Stockage dans le state
+        
+        logger.info('user', 'Données de demande de service chargées', {
+          userId: user.id,
+          familyMembersCount: members.length,
+          servicesCount: servicesData.length
+        });
       } catch (error) {
-        console.error('Erreur lors du chargement des données:', error);
+        handleError(error as Error, {
+          category: 'user',
+          context: 'Chargement données demande service'
+        });
       } finally {
         setLoading(false);
       }

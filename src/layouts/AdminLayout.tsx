@@ -18,6 +18,7 @@ const navigation = [
   { name: 'Importation utilisateurs', href: '/admin/import', icon: Upload },
   { name: 'Gestion des demandes', href: '/admin/requests', icon: FileText },
   { name: 'Gestion des services', href: '/admin/services', icon: Settings },
+  { name: 'Logs & Audit', href: '/admin/logs', icon: FileText },
 ];
 
 export default function AdminLayout() {

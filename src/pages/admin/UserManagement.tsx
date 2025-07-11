@@ -98,7 +98,10 @@ export default function UserManagement() {
       // Ajouter à la liste locale
       setUsers([...users, newUser]);
       
-      setCreateMessage(`Utilisateur créé avec succès ! Email: ${data.email} / Mot de passe: ${data.password}`);
+      setCreateMessage(`✅ Utilisateur créé avec succès ! 
+      📧 Email: ${data.email} 
+      🔑 Mot de passe: ${data.password}
+      ℹ️ L'utilisateur devra changer son mot de passe lors de sa première connexion.`);
       
       // Réinitialiser le formulaire après 3 secondes
       setTimeout(() => {

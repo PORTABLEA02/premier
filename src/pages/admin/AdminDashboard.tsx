@@ -4,6 +4,7 @@ import { Users, FileText, Clock, CheckCircle, AlertTriangle, TrendingUp } from '
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { userService } from '../../services/userService';
 import { User, ServiceRequest } from '../../types';
+import { logger } from '../../utils/logger';
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
@@ -59,6 +60,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        logger.info('user', 'Chargement du dashboard admin');
         const [usersData, requestsData] = await Promise.all([
           userService.getAllUsers(),
           userService.getAllServiceRequests()
@@ -66,8 +68,15 @@ export default function AdminDashboard() {
         
         setUsers(usersData);
         setRequests(requestsData);
+        
+        logger.info('user', 'Dashboard admin chargé', {
+          usersCount: usersData.length,
+          requestsCount: requestsData.length
+        });
       } catch (error) {
-        console.error('Erreur lors du chargement des données:', error);
+        logger.error('system', 'Erreur lors du chargement du dashboard admin', {
+          error: error.message
+        }, error as Error);
       } finally {
         setLoading(false);
       }
