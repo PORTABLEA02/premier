@@ -14,29 +14,18 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { User, FamilyMember, Service, ServiceRequest, Notification } from '../types';
-import { logger, performanceLogger } from '../utils/logger';
 
 export const userService = {
   // Utilisateurs
   async getAllUsers(): Promise<User[]> {
     try {
-      const timer = performanceLogger.startTimer('getAllUsers');
       const querySnapshot = await getDocs(collection(db, 'users'));
-      const users = querySnapshot.docs.map(doc => ({
+      return querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as User));
-      
-      timer.end({ userCount: users.length });
-      logger.info('user', 'Récupération de tous les utilisateurs', {
-        count: users.length
-      });
-      
-      return users;
     } catch (error) {
-      logger.error('user', 'Erreur lors de la récupération des utilisateurs', {
-        error: error.message
-      }, error as Error);
+      console.error('Erreur lors de la récupération des utilisateurs:', error);
       throw error;
     }
   },
@@ -45,31 +34,17 @@ export const userService = {
     try {
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (userDoc.exists()) {
-        const userData = { id: userDoc.id, ...userDoc.data() } as User;
-        logger.debug('user', 'Utilisateur récupéré par ID', {
-          userId,
-          userRole: userData.role
-        });
-        return userData;
+        return { id: userDoc.id, ...userDoc.data() } as User;
       }
-      logger.warn('user', 'Utilisateur non trouvé', { userId });
       return null;
     } catch (error) {
-      logger.error('user', 'Erreur lors de la récupération de l\'utilisateur', {
-        userId,
-        error: error.message
-      }, error as Error);
+      console.error('Erreur lors de la récupération de l\'utilisateur:', error);
       throw error;
     }
   },
 
   async updateUser(userId: string, userData: Partial<User>): Promise<void> {
     try {
-      logger.logUserAction('Mise à jour utilisateur', {
-        userId,
-        fieldsUpdated: Object.keys(userData)
-      });
-      
       // Préparer les données pour Firestore
       const updateData = {
         ...userData,
@@ -77,17 +52,9 @@ export const userService = {
       };
       
       await updateDoc(doc(db, 'users', userId), updateData);
-      
-      logger.info('user', 'Utilisateur mis à jour dans Firestore', {
-        userId,
-        fieldsUpdated: Object.keys(userData)
-      });
+      console.log('Utilisateur mis à jour dans Firestore:', userId);
     } catch (error) {
-      logger.error('user', 'Erreur lors de la mise à jour de l\'utilisateur', {
-        userId,
-        fieldsUpdated: Object.keys(userData),
-        error: error.message
-      }, error as Error);
+      console.error('Erreur lors de la mise à jour de l\'utilisateur:', error);
       throw new Error('Impossible de mettre à jour les informations utilisateur');
     }
   },
@@ -95,16 +62,8 @@ export const userService = {
   async updateUserStatus(userId: string, status: 'active' | 'suspended'): Promise<void> {
     try {
       await updateDoc(doc(db, 'users', userId), { status });
-      logger.logUserAction('Statut utilisateur modifié', {
-        userId,
-        newStatus: status
-      });
     } catch (error) {
-      logger.error('user', 'Erreur lors de la mise à jour du statut', {
-        userId,
-        status,
-        error: error.message
-      }, error as Error);
+      console.error('Erreur lors de la mise à jour du statut:', error);
       throw error;
     }
   },
@@ -269,29 +228,10 @@ export const userService = {
 
   async addServiceRequest(requestData: Omit<ServiceRequest, 'id'>): Promise<string> {
     try {
-      logger.logBusinessEvent('Nouvelle demande de service', {
-        userId: requestData.userId,
-        service: requestData.service,
-        amount: requestData.amount,
-        beneficiary: requestData.beneficiary
-      });
-      
       const docRef = await addDoc(collection(db, 'serviceRequests'), requestData);
-      
-      logger.info('request', 'Demande de service créée', {
-        requestId: docRef.id,
-        userId: requestData.userId,
-        service: requestData.service,
-        amount: requestData.amount
-      });
-      
       return docRef.id;
     } catch (error) {
-      logger.error('request', 'Erreur lors de l\'ajout de la demande', {
-        userId: requestData.userId,
-        service: requestData.service,
-        error: error.message
-      }, error as Error);
+      console.error('Erreur lors de l\'ajout de la demande:', error);
       throw error;
     }
   },
@@ -312,31 +252,14 @@ export const userService = {
     reviewedBy?: string
   ): Promise<void> {
     try {
-      logger.logBusinessEvent('Statut de demande modifié', {
-        requestId,
-        newStatus: status,
-        reviewedBy,
-        hasComments: !!comments
-      });
-      
       await updateDoc(doc(db, 'serviceRequests', requestId), {
         status,
         comments,
         reviewedBy,
         responseDate: new Date().toISOString()
       });
-      
-      logger.info('request', 'Statut de demande mis à jour', {
-        requestId,
-        status,
-        reviewedBy
-      });
     } catch (error) {
-      logger.error('request', 'Erreur lors de la mise à jour du statut', {
-        requestId,
-        status,
-        error: error.message
-      }, error as Error);
+      console.error('Erreur lors de la mise à jour du statut:', error);
       throw error;
     }
   },
