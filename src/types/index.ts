@@ -47,7 +47,7 @@ export interface ServiceRequest {
   serviceId: string;
   beneficiary: string;
   amount: number;
-  description?: string; // Optionnel maintenant
+  description: string;
   status: 'pending' | 'approved' | 'rejected';
   submissionDate: string;
   responseDate?: string;

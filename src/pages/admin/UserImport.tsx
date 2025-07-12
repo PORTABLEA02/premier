@@ -403,8 +403,8 @@ export default function UserImport() {
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {importResult.errors.map((error, index) => (
                   <div key={index} className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-700">
-                      <strong>Ligne {error.row}:</strong> {error.email} - {error.error}
+                    <p className="text-sm text-red-800">
+                      <span className="font-medium">Ligne {error.row}</span> ({error.email}): {error.error}
                     </p>
                   </div>
                 ))}

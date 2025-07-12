@@ -6,30 +6,11 @@ import {
   updatePassword,
   User as FirebaseUser,
   reauthenticateWithCredential,
-  EmailAuthProvider,
-  getAuth,
-  connectAuthEmulator
+  EmailAuthProvider
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { User } from '../types';
-
-// Configuration Firebase pour l'importation (instance séparée)
-const firebaseConfig = {
-  apiKey: "AIzaSyBkzpvB9F2d_mlKo7IAzTL6hOAYn_fCRI8",
-  authDomain: "musaib-fda27.firebaseapp.com",
-  projectId: "musaib-fda27",
-  storageBucket: "musaib-fda27.firebasestorage.app",
-  messagingSenderId: "228939211863",
-  appId: "1:228939211863:web:f188b71800039909ccef12"
-};
-
-// Instance Firebase séparée pour l'importation
-const importApp = initializeApp(firebaseConfig, 'import-app');
-const importAuth = getAuth(importApp);
-const importDb = getFirestore(importApp);
 
 export const authService = {
   // Connexion
@@ -91,10 +72,9 @@ export const authService = {
   },
 
   // Créer un utilisateur (admin seulement)
-  async createUser(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'lastLogin' | 'firstLogin'>, password: string): Promise<User> {
+  async createUser(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'lastLogin'>, password: string): Promise<User> {
     try {
-      // Utiliser l'instance d'authentification séparée pour éviter de déconnecter l'admin
-      const userCredential = await createUserWithEmailAndPassword(importAuth, userData.email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, userData.email, password);
       const firebaseUser = userCredential.user;
       
       const newUser: User = {
@@ -106,27 +86,16 @@ export const authService = {
         status: 'active'
       };
       
-      // Sauvegarder dans Firestore en utilisant l'instance principale
-      await setDoc(doc(importDb, 'users', firebaseUser.uid), {
+      // Sauvegarder dans Firestore
+      await setDoc(doc(db, 'users', firebaseUser.uid), {
         ...newUser,
         createdAt: newUser.createdAt.toISOString(),
         updatedAt: newUser.updatedAt.toISOString()
       });
-
-      // Déconnecter immédiatement l'utilisateur créé de l'instance d'importation
-      // pour éviter qu'il reste connecté
-      await importAuth.signOut();
       
       return newUser;
     } catch (error: any) {
       console.error('Erreur de création d\'utilisateur:', error);
-      
-      // S'assurer de déconnecter en cas d'erreur aussi
-      try {
-        await importAuth.signOut();
-      } catch (signOutError) {
-        console.error('Erreur lors de la déconnexion après échec:', signOutError);
-      }
       
       switch (error.code) {
         case 'auth/email-already-in-use':
@@ -135,10 +104,6 @@ export const authService = {
           throw new Error('Format d\'email invalide');
         case 'auth/weak-password':
           throw new Error('Le mot de passe doit contenir au moins 6 caractères');
-        case 'auth/operation-not-allowed':
-          throw new Error('Création de compte désactivée');
-        case 'auth/too-many-requests':
-          throw new Error('Trop de tentatives. Réessayez plus tard');
         default:
           throw new Error('Erreur lors de la création du compte');
       }

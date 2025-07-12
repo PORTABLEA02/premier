@@ -45,17 +45,10 @@ export const userService = {
 
   async updateUser(userId: string, userData: Partial<User>): Promise<void> {
     try {
-      // Préparer les données pour Firestore
-      const updateData = {
-        ...userData,
-        updatedAt: new Date().toISOString()
-      };
-      
-      await updateDoc(doc(db, 'users', userId), updateData);
-      console.log('Utilisateur mis à jour dans Firestore:', userId);
+      await updateDoc(doc(db, 'users', userId), userData);
     } catch (error) {
       console.error('Erreur lors de la mise à jour de l\'utilisateur:', error);
-      throw new Error('Impossible de mettre à jour les informations utilisateur');
+      throw error;
     }
   },
 

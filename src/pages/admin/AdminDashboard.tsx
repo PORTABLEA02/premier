@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Users, FileText, Clock, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { userService } from '../../services/userService';
@@ -97,27 +96,21 @@ export default function AdminDashboard() {
       value: users.length.toString(), 
       icon: Users, 
       color: 'blue', 
-      change: '+0%',
-      link: '/admin/users',
-      action: 'view'
+      change: '+0%' 
     },
     { 
       name: 'Demandes en attente', 
       value: requests.filter(r => r.status === 'pending').length.toString(), 
       icon: Clock, 
       color: 'orange', 
-      change: '+0%',
-      link: '/admin/requests?status=pending',
-      action: 'view'
+      change: '+0%' 
     },
     { 
       name: 'Demandes traitées', 
       value: requests.filter(r => r.status !== 'pending').length.toString(), 
       icon: CheckCircle, 
       color: 'green', 
-      change: '+0%',
-      link: '/admin/requests?status=treated',
-      action: 'view'
+      change: '+0%' 
     },
     { 
       name: 'Demandes ce mois', 
@@ -128,9 +121,7 @@ export default function AdminDashboard() {
       }).length.toString(), 
       icon: FileText, 
       color: 'purple', 
-      change: '+0%',
-      link: '/admin/requests',
-      action: 'view'
+      change: '+0%' 
     },
   ];
 
@@ -145,25 +136,21 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => (
-          <Link 
-            key={stat.name} 
-            to={stat.link}
-            className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all duration-200 block group hover:scale-105"
-          >
+          <div key={stat.name} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow duration-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-200">{stat.name}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2 group-hover:text-blue-600 transition-colors duration-200">{stat.value}</p>
+                <p className="text-sm font-medium text-gray-600">{stat.name}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
                 <div className="flex items-center mt-2">
                   <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
                   <span className="text-sm text-green-600 font-medium">{stat.change}</span>
                 </div>
               </div>
-              <div className={`h-12 w-12 bg-${stat.color}-100 rounded-lg flex items-center justify-center group-hover:bg-${stat.color}-200 transition-colors duration-200`}>
-                <stat.icon className={`h-6 w-6 text-${stat.color}-600 group-hover:text-${stat.color}-700 transition-colors duration-200`} />
+              <div className={`h-12 w-12 bg-${stat.color}-100 rounded-lg flex items-center justify-center`}>
+                <stat.icon className={`h-6 w-6 text-${stat.color}-600`} />
               </div>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
 

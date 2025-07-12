@@ -112,20 +112,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) throw new Error('Utilisateur non connecté');
     
     try {
-      // Mettre à jour dans Firestore
       await userService.updateUser(user.id, {
         ...userData,
         updatedAt: new Date()
       });
       
-      // Mettre à jour l'état local avec les nouvelles données
-      const updatedUser = { ...user, ...userData, updatedAt: new Date() };
-      setUser(updatedUser);
-      
-      console.log('Profil mis à jour avec succès');
+      // Mettre à jour l'état local
+      setUser({ ...user, ...userData });
     } catch (error) {
       console.error('Erreur de mise à jour du profil:', error);
-      throw new Error('Erreur lors de la mise à jour du profil');
+      throw error;
     }
   };
 

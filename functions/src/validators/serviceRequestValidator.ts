@@ -12,7 +12,7 @@ export async function validateServiceRequest(data: any, requestId: string): Prom
     // 1. Validate required fields
     const requiredFields = [
       'userId', 'memberName', 'memberEmail', 'service', 'serviceId',
-      'beneficiary', 'amount', 'status', 'submissionDate',
+      'beneficiary', 'amount', 'description', 'status', 'submissionDate',
       'documents', 'paymentMethod', 'accountHolderName'
     ];
 
@@ -102,6 +102,10 @@ export async function validateServiceRequest(data: any, requestId: string): Prom
       errors.push('Au moins un document justificatif est requis');
     }
 
+    // 10. Validate description length
+    if (data.description && data.description.length < 20) {
+      errors.push('Description trop courte (minimum 20 caractères)');
+    }
 
     // 11. Check for duplicate requests (same user, service, amount in last 24h)
     if (data.userId && data.serviceId && data.amount) {

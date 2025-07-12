@@ -134,7 +134,7 @@ export default function ServiceRequest() {
         serviceId: selectedService.id,
         beneficiary: beneficiaryName,
         amount: Number(data.amount), // Convertir explicitement en nombre
-        description: `Demande de ${selectedService.name} pour ${beneficiaryName}`, // Description automatique
+        description: data.description,
         paymentMethod: data.paymentMethod,
         accountHolderName: data.accountHolderName,
         status: 'pending' as const,
@@ -177,6 +177,7 @@ export default function ServiceRequest() {
       setValue('serviceId', '');
       setValue('beneficiary', '');
       setValue('amount', 0);
+      setValue('description', '');
       setValue('paymentMethod', 'mobile');
       setValue('mobileNumber', '');
       setValue('bankAccount', '');
@@ -587,6 +588,24 @@ export default function ServiceRequest() {
                 </div>
               )}
 
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Description détaillée de la demande
+                </label>
+                <textarea
+                  {...register('description', { 
+                    required: 'La description est requise',
+                    minLength: { value: 20, message: 'La description doit contenir au moins 20 caractères' }
+                  })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={5}
+                  placeholder="Décrivez votre demande en détail : motif, circonstances, justification du montant demandé..."
+                />
+                {errors.description && (
+                  <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+                )}
+              </div>
 
               {/* File Upload */}
               <div>
@@ -659,7 +678,8 @@ export default function ServiceRequest() {
                     <ul className="text-sm text-amber-800 space-y-1">
                       <li>• <strong>Tous les champs marqués d'un * sont obligatoires</strong></li>
                       <li>• <strong>Les pièces justificatives sont obligatoires</strong> pour toute demande</li>
-                      <li>• Assurez-vous que les documents justificatifs correspondent au service demandé</li>
+                      <li>• Assurez-vous que tous les documents requis sont joints à votre demande</li>
+                      <li>• Les demandes incomplètes peuvent être retardées ou rejetées</li>
                       <li>• Votre demande aura le statut <strong>"En attente de traitement"</strong> après soumission</li>
                       <li>• Le délai de traitement est généralement de 48h ouvrables</li>
                     </ul>

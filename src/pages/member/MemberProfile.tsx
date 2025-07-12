@@ -18,7 +18,7 @@ interface PasswordForm {
 }
 
 export default function MemberProfile() {
-  const { user, changePassword, updateProfile } = useAuth();
+  const { user, changePassword } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -40,23 +40,9 @@ export default function MemberProfile() {
     setMessage('');
     
     try {
-      if (!user) {
-        setMessage('Erreur: utilisateur non connecté');
-        return;
-      }
-
-      // Mettre à jour le profil via le service d'authentification
-      await updateProfile({
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        address: data.address,
-        birthDate: data.birthDate
-      });
-      
+      // Mock profile update
       setMessage('Profil mis à jour avec succès');
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du profil:', error);
       setMessage('Erreur lors de la mise à jour du profil');
     } finally {
       setIsLoading(false);

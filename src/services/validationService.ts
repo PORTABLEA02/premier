@@ -28,6 +28,9 @@ export const validationService = {
     if (!data.serviceId) errors.push('Service requis');
     if (!data.beneficiary) errors.push('Bénéficiaire requis');
     if (!data.amount || data.amount <= 0) errors.push('Montant invalide');
+    if (!data.description || data.description.length < 20) {
+      errors.push('Description trop courte (minimum 20 caractères)');
+    }
     if (!data.paymentMethod) errors.push('Mode de paiement requis');
     if (!data.accountHolderName) errors.push('Nom du titulaire requis');
 
