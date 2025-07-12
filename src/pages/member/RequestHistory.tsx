@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Search, Filter, Eye, Download, Calendar, FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { userService } from '../../services/userService';
 import { ServiceRequest } from '../../types';
 
 export default function RequestHistory() {
+  const location = useLocation();
   const { user } = useAuth();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -12,6 +14,14 @@ export default function RequestHistory() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
 
+  // Initialiser le filtre basé sur les paramètres URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const filterParam = urlParams.get('filter');
+    if (filterParam && ['all', 'pending', 'approved', 'rejected'].includes(filterParam)) {
+      setStatusFilter(filterParam as 'all' | 'pending' | 'approved' | 'rejected');
+    }
+  }, [location.search]);
   useEffect(() => {
     if (!user) return;
 

@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, MoreVertical, User, Mail, Phone, Shield, ShieldOff, RotateCcw } from 'lucide-react';
+import { Search, Filter, MoreVertical, User, Mail, Phone, Shield, ShieldOff, RotateCcw, Plus } from 'lucide-react';
+import { useForm } from 'react-hook-form';
 import { userService } from '../../services/userService';
+import { authService } from '../../services/authService';
 import { User as UserType } from '../../types';
+
+interface CreateUserForm {
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  birthDate?: string;
+  role: 'admin' | 'member';
+  password: string;
+}
 
 export default function UserManagement() {
   const [users, setUsers] = useState<UserType[]>([]);
@@ -9,6 +21,16 @@ export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createMessage, setCreateMessage] = useState('');
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<CreateUserForm>({
+    defaultValues: {
+      role: 'member',
+      password: 'Default123'
+    }
+  });
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -57,6 +79,51 @@ export default function UserManagement() {
     }
   };
 
+  const handleCreateUser = async (data: CreateUserForm) => {
+    setIsCreating(true);
+    setCreateMessage('');
+    
+    try {
+      const newUser = await authService.createUser({
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        phone: data.phone,
+        address: data.address,
+        birthDate: data.birthDate,
+        joinDate: new Date().toISOString().split('T')[0],
+        status: 'active'
+      }, data.password);
+      
+      // Ajouter à la liste locale
+      setUsers([...users, newUser]);
+      
+      setCreateMessage(`✅ Utilisateur créé avec succès ! 
+      📧 Email: ${data.email} 
+      🔑 Mot de passe: ${data.password}
+      ℹ️ L'utilisateur devra changer son mot de passe lors de sa première connexion.`);
+      
+      // Réinitialiser le formulaire après 3 secondes
+      setTimeout(() => {
+        setShowCreateModal(false);
+        setCreateMessage('');
+        reset();
+      }, 3000);
+      
+    } catch (error: any) {
+      console.error('Erreur lors de la création:', error);
+      setCreateMessage(`Erreur: ${error.message}`);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    setCreateMessage('');
+    reset();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -68,9 +135,18 @@ export default function UserManagement() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Gestion des adhérents</h1>
-        <p className="text-gray-600 mt-2">Gérez les comptes et statuts des adhérents</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Gestion des adhérents</h1>
+          <p className="text-gray-600 mt-2">Gérez les comptes et statuts des adhérents</p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          Nouvel utilisateur
+        </button>
       </div>
 
       {/* Filters */}
@@ -260,6 +336,194 @@ export default function UserManagement() {
           </div>
         )}
       </div>
+
+      {/* Create User Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900">Créer un nouvel utilisateur</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                L'utilisateur devra changer son mot de passe lors de sa première connexion
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit(handleCreateUser)} className="p-6 space-y-6">
+              {createMessage && (
+                <div className={`p-4 rounded-lg ${
+                  createMessage.includes('succès') 
+                    ? 'bg-green-50 text-green-700 border border-green-200' 
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {createMessage}
+                </div>
+              )}
+
+              {/* Informations de base */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nom complet *
+                  </label>
+                  <input
+                    {...register('name', { required: 'Le nom est requis' })}
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Jean Dupont"
+                  />
+                  {errors.name && (
+                    <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Adresse email *
+                  </label>
+                  <input
+                    {...register('email', { 
+                      required: 'L\'email est requis',
+                      pattern: {
+                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                        message: 'Format d\'email invalide'
+                      }
+                    })}
+                    type="email"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="jean.dupont@example.com"
+                  />
+                  {errors.email && (
+                    <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Numéro de téléphone
+                  </label>
+                  <input
+                    {...register('phone')}
+                    type="tel"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="+33 6 12 34 56 78"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date de naissance
+                  </label>
+                  <input
+                    {...register('birthDate')}
+                    type="date"
+                    max={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Adresse complète
+                </label>
+                <textarea
+                  {...register('address')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={3}
+                  placeholder="123 Rue de la République, 75001 Paris"
+                />
+              </div>
+
+              {/* Rôle et mot de passe */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Rôle *
+                  </label>
+                  <select
+                    {...register('role', { required: 'Le rôle est requis' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="member">Membre</option>
+                    <option value="admin">Administrateur</option>
+                  </select>
+                  {errors.role && (
+                    <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mot de passe temporaire *
+                  </label>
+                  <input
+                    {...register('password', { 
+                      required: 'Le mot de passe est requis',
+                      minLength: {
+                        value: 6,
+                        message: 'Le mot de passe doit contenir au moins 6 caractères'
+                      }
+                    })}
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Default123"
+                  />
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    L'utilisateur devra changer ce mot de passe lors de sa première connexion
+                  </p>
+                </div>
+              </div>
+
+              {/* Informations importantes */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <Shield className="h-5 w-5 text-blue-600 mr-3 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-900 mb-2">Informations importantes</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• L'utilisateur recevra ses identifiants par email (fonctionnalité à implémenter)</li>
+                      <li>• Le mot de passe temporaire doit être communiqué de manière sécurisée</li>
+                      <li>• L'utilisateur sera forcé de changer son mot de passe à la première connexion</li>
+                      <li>• Le compte sera automatiquement activé</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={handleCloseCreateModal}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
+                disabled={isCreating}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSubmit(handleCreateUser)}
+                disabled={isCreating}
+                className="flex items-center px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCreating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Création...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Créer l'utilisateur
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

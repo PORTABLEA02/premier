@@ -1,6 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SessionProvider } from './contexts/SessionContext';
+import GlobalErrorBoundary from './components/GlobalErrorBoundary';
+import ErrorNotification from './components/ErrorNotification';
+import OfflineIndicator from './components/OfflineIndicator';
 import LoginPage from './pages/LoginPage';
 import PasswordResetPage from './pages/PasswordResetPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
@@ -12,6 +16,7 @@ import UserImport from './pages/admin/UserImport';
 import RequestManagement from './pages/admin/RequestManagement';
 import ServiceManagement from './pages/admin/ServiceManagement';
 import AdminProfile from './pages/admin/AdminProfile';
+import LogsDashboard from './pages/admin/LogsDashboard';
 import MemberDashboard from './pages/member/MemberDashboard';
 import MemberProfile from './pages/member/MemberProfile';
 import FamilyManagement from './pages/member/FamilyManagement';
@@ -19,6 +24,8 @@ import ServiceRequest from './pages/member/ServiceRequest';
 import RequestHistory from './pages/member/RequestHistory';
 import FirebaseStatus from './components/FirebaseStatus';
 import DatabaseInitializer from './components/DatabaseInitializer';
+import SessionStatus from './components/SessionStatus';
+import { logger, setupGlobalErrorHandling } from './utils/logger';
 
 // Composant pour gérer les erreurs de navigation
 function NavigationErrorBoundary({ children }: { children: React.ReactNode }) {
@@ -55,7 +62,9 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
   }
   
   // Rediriger vers le changement de mot de passe si c'est la première connexion
-  if (user.firstLogin && window.location.pathname !== '/change-password') {
+  // SAUF si c'est un utilisateur importé qui n'a jamais été connecté réellement
+  const isRealFirstLogin = user.firstLogin && user.lastLogin;
+  if (isRealFirstLogin && window.location.pathname !== '/change-password') {
     return <Navigate to="/change-password" replace />;
   }
   
@@ -117,6 +126,7 @@ function AppRoutes() {
         <Route path="requests" element={<RequestManagement />} />
         <Route path="services" element={<ServiceManagement />} />
         <Route path="profile" element={<AdminProfile />} />
+        <Route path="logs" element={<LogsDashboard />} />
       </Route>
       
       {/* Routes Membre */}
@@ -142,18 +152,42 @@ function AppRoutes() {
 }
 
 function App() {
+  // Initialiser la gestion globale des erreurs
+  React.useEffect(() => {
+    setupGlobalErrorHandling();
+    logger.info('system', 'Application MuSAIB démarrée avec gestion d\'erreurs améliorée', {
+      version: '1.0.0',
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    });
+  }, []);
+
   return (
-    <AuthProvider>
-      <Router>
-        <NavigationErrorBoundary>
-          <div className="min-h-screen bg-gray-50">
-            <AppRoutes />
-            <FirebaseStatus />
-            <DatabaseInitializer />
-          </div>
-        </NavigationErrorBoundary>
-      </Router>
-    </AuthProvider>
+    <GlobalErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <SessionProvider
+            config={{
+              maxInactivityTime: 30 * 60 * 1000, // 30 minutes
+              warningTime: 5 * 60 * 1000, // 5 minutes d'avertissement
+              checkInterval: 1000, // vérification chaque seconde
+              extendOnActivity: true // étendre automatiquement sur activité
+            }}
+          >
+            <NavigationErrorBoundary>
+              <div className="min-h-screen bg-gray-50">
+                <OfflineIndicator />
+                <AppRoutes />
+                <ErrorNotification maxErrors={3} autoHideDelay={5000} />
+                <FirebaseStatus />
+                <DatabaseInitializer />
+                <SessionStatus />
+              </div>
+            </NavigationErrorBoundary>
+          </SessionProvider>
+        </Router>
+      </AuthProvider>
+    </GlobalErrorBoundary>
   );
 }
 

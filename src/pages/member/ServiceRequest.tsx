@@ -4,6 +4,8 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
 import { userService } from '../../services/userService';
 import { FamilyMember, Service } from '../../types';
+import { logger } from '../../utils/logger';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
 
 interface ServiceRequestForm {
   serviceId: string;
@@ -18,6 +20,7 @@ interface ServiceRequestForm {
 
 export default function ServiceRequest() {
   const { user } = useAuth();
+  const { handleError, handleAsyncError } = useErrorHandler();
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -28,6 +31,11 @@ export default function ServiceRequest() {
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<ServiceRequestForm>();
   
   const selectedServiceId = watch('serviceId');
+  
+  // Enregistrer le champ serviceId avec react-hook-form
+  React.useEffect(() => {
+    register('serviceId', { required: 'Veuillez sélectionner un service' });
+  }, [register]);
   const selectedService = services.find(s => s.id === selectedServiceId);
   const currentAmount = watch('amount');
   const paymentMethod = watch('paymentMethod');
@@ -37,6 +45,9 @@ export default function ServiceRequest() {
   useEffect(() => {
     if (!user) return;
 
+    logger.info('user', 'Chargement de la page de demande de service', {
+      userId: user.id
+    });
     const loadData = async () => {
       try {
         setLoading(true);
@@ -46,8 +57,17 @@ export default function ServiceRequest() {
         ]);
         setFamilyMembers(members);
         setServices(servicesData); // Stockage dans le state
+        
+        logger.info('user', 'Données de demande de service chargées', {
+          userId: user.id,
+          familyMembersCount: members.length,
+          servicesCount: servicesData.length
+        });
       } catch (error) {
-        console.error('Erreur lors du chargement des données:', error);
+        handleError(error as Error, {
+          category: 'user',
+          context: 'Chargement données demande service'
+        });
       } finally {
         setLoading(false);
       }
@@ -134,7 +154,7 @@ export default function ServiceRequest() {
         serviceId: selectedService.id,
         beneficiary: beneficiaryName,
         amount: Number(data.amount), // Convertir explicitement en nombre
-        description: data.description,
+        description: `Demande de ${selectedService.name} pour ${beneficiaryName}`, // Description automatique
         paymentMethod: data.paymentMethod,
         accountHolderName: data.accountHolderName,
         status: 'pending' as const,
@@ -177,7 +197,6 @@ export default function ServiceRequest() {
       setValue('serviceId', '');
       setValue('beneficiary', '');
       setValue('amount', 0);
-      setValue('description', '');
       setValue('paymentMethod', 'mobile');
       setValue('mobileNumber', '');
       setValue('bankAccount', '');
@@ -588,24 +607,6 @@ export default function ServiceRequest() {
                 </div>
               )}
 
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Description détaillée de la demande
-                </label>
-                <textarea
-                  {...register('description', { 
-                    required: 'La description est requise',
-                    minLength: { value: 20, message: 'La description doit contenir au moins 20 caractères' }
-                  })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  rows={5}
-                  placeholder="Décrivez votre demande en détail : motif, circonstances, justification du montant demandé..."
-                />
-                {errors.description && (
-                  <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
-                )}
-              </div>
 
               {/* File Upload */}
               <div>
@@ -678,8 +679,7 @@ export default function ServiceRequest() {
                     <ul className="text-sm text-amber-800 space-y-1">
                       <li>• <strong>Tous les champs marqués d'un * sont obligatoires</strong></li>
                       <li>• <strong>Les pièces justificatives sont obligatoires</strong> pour toute demande</li>
-                      <li>• Assurez-vous que tous les documents requis sont joints à votre demande</li>
-                      <li>• Les demandes incomplètes peuvent être retardées ou rejetées</li>
+                      <li>• Assurez-vous que les documents justificatifs correspondent au service demandé</li>
                       <li>• Votre demande aura le statut <strong>"En attente de traitement"</strong> après soumission</li>
                       <li>• Le délai de traitement est généralement de 48h ouvrables</li>
                     </ul>

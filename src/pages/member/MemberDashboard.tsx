@@ -46,21 +46,21 @@ export default function MemberDashboard() {
       value: requests.length.toString(), 
       icon: FileText, 
       color: 'blue',
-      link: '/member/history'
+      link: '/member/history?filter=all'
     },
     { 
       name: 'En attente', 
       value: requests.filter(r => r.status === 'pending').length.toString(), 
       icon: Clock, 
       color: 'orange',
-      link: '/member/history'
+      link: '/member/history?filter=pending'
     },
     { 
       name: 'Approuvées', 
       value: requests.filter(r => r.status === 'approved').length.toString(), 
       icon: CheckCircle, 
       color: 'green',
-      link: '/member/history'
+      link: '/member/history?filter=approved'
     },
     { 
       name: 'Membres famille', 

@@ -20,6 +20,12 @@ export default function FirebaseStatus() {
     // Vérifier la connexion Firestore
     const checkFirestore = async () => {
       try {
+        // Vérifier que l'utilisateur est authentifié avant de tester Firestore
+        if (!auth.currentUser) {
+          setFirestoreStatus('disconnected');
+          return;
+        }
+        
         // Essayer de lire un document test
         await getDoc(doc(db, 'test', 'connection'));
         setFirestoreStatus('connected');
@@ -35,6 +41,7 @@ export default function FirebaseStatus() {
     // Écouter les changements d'authentification
     const unsubscribe = auth.onAuthStateChanged(() => {
       checkAuth();
+      checkFirestore(); // Re-vérifier Firestore quand l'état d'auth change
     });
 
     return () => unsubscribe();

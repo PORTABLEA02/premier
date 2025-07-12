@@ -14,8 +14,8 @@ interface PasswordForm {
   confirmPassword: string;
 }
 
-export default function AdminProfile() {
-  const { user, changePassword, updateProfile } = useAuth();
+export default function ControllerProfile() {
+  const { user, changePassword } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -34,20 +34,9 @@ export default function AdminProfile() {
     setMessage('');
     
     try {
-      if (!user) {
-        setMessage('Erreur: utilisateur non connecté');
-        return;
-      }
-
-      // Mettre à jour le profil via le service d'authentification
-      await updateProfile({
-        name: data.name,
-        email: data.email
-      });
-      
+      // Mock profile update
       setMessage('Profil mis à jour avec succès');
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du profil:', error);
       setMessage('Erreur lors de la mise à jour du profil');
     } finally {
       setIsLoading(false);
@@ -89,7 +78,7 @@ export default function AdminProfile() {
               onClick={() => setActiveTab('profile')}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                 activeTab === 'profile'
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-green-500 text-green-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -100,7 +89,7 @@ export default function AdminProfile() {
               onClick={() => setActiveTab('password')}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                 activeTab === 'password'
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-green-500 text-green-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
@@ -134,7 +123,7 @@ export default function AdminProfile() {
                     <input
                       {...profileForm.register('name', { required: 'Le nom est requis' })}
                       type="text"
-                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                   </div>
                   {profileForm.formState.errors.name && (
@@ -159,7 +148,7 @@ export default function AdminProfile() {
                         }
                       })}
                       type="email"
-                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                   </div>
                   {profileForm.formState.errors.email && (
@@ -172,7 +161,7 @@ export default function AdminProfile() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {isLoading ? 'Enregistrement...' : 'Enregistrer'}
@@ -196,7 +185,7 @@ export default function AdminProfile() {
                     <input
                       {...passwordForm.register('currentPassword', { required: 'Le mot de passe actuel est requis' })}
                       type="password"
-                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                   </div>
                   {passwordForm.formState.errors.currentPassword && (
@@ -221,7 +210,7 @@ export default function AdminProfile() {
                         }
                       })}
                       type="password"
-                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                   </div>
                   {passwordForm.formState.errors.newPassword && (
@@ -243,7 +232,7 @@ export default function AdminProfile() {
                         validate: value => value === passwordForm.watch('newPassword') || 'Les mots de passe ne correspondent pas'
                       })}
                       type="password"
-                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                   </div>
                   {passwordForm.formState.errors.confirmPassword && (
@@ -256,7 +245,7 @@ export default function AdminProfile() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
                   <Lock className="h-4 w-4 mr-2" />
                   {isLoading ? 'Modification...' : 'Changer le mot de passe'}

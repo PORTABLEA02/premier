@@ -1,19 +1,29 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Search, Filter, Eye, Check, X, MessageSquare, Calendar, User, Clock, CheckCircle, XCircle, FileText, Download, ExternalLink } from 'lucide-react';
 import { userService } from '../../services/userService';
 import { ServiceRequest } from '../../types';
 
 export default function RequestManagement() {
+  const location = useLocation();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'treated'>('all');
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [comment, setComment] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
 
+  // Initialiser le filtre basé sur les paramètres URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const statusParam = urlParams.get('status');
+    if (statusParam && ['pending', 'approved', 'rejected', 'treated'].includes(statusParam)) {
+      setStatusFilter(statusParam as 'pending' | 'approved' | 'rejected' | 'treated');
+    }
+  }, [location.search]);
   useEffect(() => {
     const loadRequests = async () => {
       try {
@@ -39,7 +49,16 @@ export default function RequestManagement() {
   const filteredRequests = requests.filter(request => {
     const matchesSearch = request.memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.service.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
+    
+    let matchesStatus = false;
+    if (statusFilter === 'all') {
+      matchesStatus = true;
+    } else if (statusFilter === 'treated') {
+      matchesStatus = request.status === 'approved' || request.status === 'rejected';
+    } else {
+      matchesStatus = request.status === statusFilter;
+    }
+    
     return matchesSearch && matchesStatus;
   });
 
@@ -165,6 +184,7 @@ export default function RequestManagement() {
             >
               <option value="all">Tous les statuts</option>
               <option value="pending">En attente de traitement</option>
+              <option value="treated">Demandes traitées</option>
               <option value="approved">Approuvées</option>
               <option value="rejected">Rejetées</option>
             </select>
@@ -177,6 +197,7 @@ export default function RequestManagement() {
         {[
           { label: 'Total', count: requests.length, color: 'blue' },
           { label: 'En attente de traitement', count: requests.filter(r => r.status === 'pending').length, color: 'yellow' },
+          { label: 'Demandes traitées', count: requests.filter(r => r.status === 'approved' || r.status === 'rejected').length, color: 'purple' },
           { label: 'Approuvées', count: requests.filter(r => r.status === 'approved').length, color: 'green' },
           { label: 'Rejetées', count: requests.filter(r => r.status === 'rejected').length, color: 'red' },
         ].map((stat) => (

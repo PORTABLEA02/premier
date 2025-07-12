@@ -97,7 +97,26 @@ export default function LoginPage() {
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <div className="flex">
                   <AlertCircle className="h-5 w-5 text-red-400 mr-3" />
-                  <div className="text-sm text-red-700">{error}</div>
+                  <div>
+                    {(error.includes('incorrect') || error.includes('invalid-credential') || error.includes('wrong-password')) ? (
+                      <>
+                        <h4 className="text-sm font-medium text-red-800 mb-1">Identifiants incorrects</h4>
+                        <div className="text-sm text-red-700">L'adresse email ou le mot de passe que vous avez saisi est incorrect.</div>
+                      </>
+                    ) : (
+                      <>
+                        <h4 className="text-sm font-medium text-red-800 mb-1">Erreur de connexion</h4>
+                        <div className="text-sm text-red-700">{error}</div>
+                      </>
+                    )}
+                    {(error.includes('incorrect') || error.includes('invalid-credential') || error.includes('wrong-password')) && (
+                      <div className="mt-2 text-xs text-red-600">
+                        <p>• Vérifiez votre adresse email</p>
+                        <p>• Vérifiez votre mot de passe</p>
+                        <p>• Assurez-vous que votre compte est actif</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

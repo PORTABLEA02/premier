@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Users, FileText, Clock, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { userService } from '../../services/userService';
 import { User, ServiceRequest } from '../../types';
+import { logger } from '../../utils/logger';
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
@@ -58,6 +60,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        logger.info('user', 'Chargement du dashboard admin');
         const [usersData, requestsData] = await Promise.all([
           userService.getAllUsers(),
           userService.getAllServiceRequests()
@@ -65,8 +68,15 @@ export default function AdminDashboard() {
         
         setUsers(usersData);
         setRequests(requestsData);
+        
+        logger.info('user', 'Dashboard admin chargé', {
+          usersCount: usersData.length,
+          requestsCount: requestsData.length
+        });
       } catch (error) {
-        console.error('Erreur lors du chargement des données:', error);
+        logger.error('system', 'Erreur lors du chargement du dashboard admin', {
+          error: error.message
+        }, error as Error);
       } finally {
         setLoading(false);
       }
@@ -96,21 +106,27 @@ export default function AdminDashboard() {
       value: users.length.toString(), 
       icon: Users, 
       color: 'blue', 
-      change: '+0%' 
+      change: '+0%',
+      link: '/admin/users',
+      action: 'view'
     },
     { 
       name: 'Demandes en attente', 
       value: requests.filter(r => r.status === 'pending').length.toString(), 
       icon: Clock, 
       color: 'orange', 
-      change: '+0%' 
+      change: '+0%',
+      link: '/admin/requests?status=pending',
+      action: 'view'
     },
     { 
       name: 'Demandes traitées', 
       value: requests.filter(r => r.status !== 'pending').length.toString(), 
       icon: CheckCircle, 
       color: 'green', 
-      change: '+0%' 
+      change: '+0%',
+      link: '/admin/requests?status=treated',
+      action: 'view'
     },
     { 
       name: 'Demandes ce mois', 
@@ -121,7 +137,9 @@ export default function AdminDashboard() {
       }).length.toString(), 
       icon: FileText, 
       color: 'purple', 
-      change: '+0%' 
+      change: '+0%',
+      link: '/admin/requests',
+      action: 'view'
     },
   ];
 
@@ -136,21 +154,25 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => (
-          <div key={stat.name} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow duration-200">
+          <Link 
+            key={stat.name} 
+            to={stat.link}
+            className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all duration-200 block group hover:scale-105"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">{stat.name}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
+                <p className="text-sm font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-200">{stat.name}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2 group-hover:text-blue-600 transition-colors duration-200">{stat.value}</p>
                 <div className="flex items-center mt-2">
                   <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
                   <span className="text-sm text-green-600 font-medium">{stat.change}</span>
                 </div>
               </div>
-              <div className={`h-12 w-12 bg-${stat.color}-100 rounded-lg flex items-center justify-center`}>
-                <stat.icon className={`h-6 w-6 text-${stat.color}-600`} />
+              <div className={`h-12 w-12 bg-${stat.color}-100 rounded-lg flex items-center justify-center group-hover:bg-${stat.color}-200 transition-colors duration-200`}>
+                <stat.icon className={`h-6 w-6 text-${stat.color}-600 group-hover:text-${stat.color}-700 transition-colors duration-200`} />
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
